@@ -9,7 +9,7 @@ You will implement the functions in recommender.py:
 - recommend_songs
 """
 
-from recommender import load_songs, recommend_songs
+from recommender import load_songs, recommend_songs, SCORING_MODES
 
 
 USERS = {
@@ -159,9 +159,11 @@ def main() -> None:
     songs = load_songs("data/songs.csv")
     print(f"Loaded {len(songs)} songs from the dataset.")
 
+    # --- Standard profiles across all scoring modes ---
     for label, user_prefs in USERS.items():
-        recommendations = recommend_songs(user_prefs, songs, k=5)
-        print_recommendations(f"Top Recommendations — {label}", recommendations)
+        for mode in SCORING_MODES:
+            recommendations = recommend_songs(user_prefs, songs, k=5, mode=mode)
+            print_recommendations(f"{label}  [{mode}]", recommendations)
 
 
 if __name__ == "__main__":

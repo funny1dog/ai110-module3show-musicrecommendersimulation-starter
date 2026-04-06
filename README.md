@@ -652,3 +652,68 @@ With more differentiating features, more songs find at least one profile where t
 Each recommendation now shows up to 11 bullet-point reasons instead of 6. A user can see not just "energy closely matches" but also "liveness closely matches (diff=0.02)" and "decade matches (2020s)", making the output more informative and easier to audit.
 
 ---
+## Challenge 2: Multiple Scoring Modes
+
+### What was built
+
+Four scoring modes were added to `src/recommender.py` in a `SCORING_MODES` registry. Each mode is a complete weight dict that sums to 1.0. Pass the mode name to `recommend_songs()` to switch strategy:
+
+```python
+recommend_songs(user_prefs, songs, k=5, mode="mood_first")
+```
+
+| Mode | Dominant signal | Weight | Best for |
+| --- | --- | --- | --- |
+| `balanced` | All 11 features proportionally | energy 0.20, mood 0.15, tempo 0.12 | General-purpose default |
+| `genre_first` | Genre + era | genre 0.30, decade 0.15, mood 0.15 | Stylistic consistency — same genre and era |
+| `mood_first` | Mood | mood 0.35, energy 0.15, valence 0.12 | Vibe-driven listening across genres |
+| `energy_focused` | Energy + tempo + loudness | energy 0.40, tempo 0.25, loudness 0.10 | Activity contexts — workouts, focus sessions |
+
+### Findings: how modes change rankings
+
+The table below shows the top-5 for three representative profiles across all four modes. Songs that change position are the most interesting signal.
+
+#### Chill Lofi
+
+| Rank | balanced | genre_first | mood_first | energy_focused |
+| --- | --- | --- | --- | --- |
+| #1 | Midnight Coding | Midnight Coding | Midnight Coding | Midnight Coding |
+| #2 | Library Rain | Library Rain | Library Rain | Library Rain |
+| #3 | Focus Flow | Focus Flow | Spacewalk Thoughts | Focus Flow |
+| #4 | Spacewalk Thoughts | Spacewalk Thoughts | Focus Flow | Coffee Shop Stories |
+| #5 | Candlelight Folk | Candlelight Folk | Coffee Shop Stories | Candlelight Folk |
+
+`mood_first` swaps #3 and #4 — *Spacewalk Thoughts* (ambient/chill, exact mood match) jumps above *Focus Flow* (lofi/focused, partial mood match) because mood weight triples from 0.15 to 0.35. `energy_focused` pushes *Coffee Shop Stories* into #4 because it closely matches the low energy target (diff=0.03), bumping *Candlelight Folk* down.
+
+#### High-Energy Pop
+
+| Rank | balanced | genre_first | mood_first | energy_focused |
+| --- | --- | --- | --- | --- |
+| #1 | Sunrise City | Sunrise City | Sunrise City | Sunrise City |
+| #2 | Rooftop Lights | Gym Hero | Rooftop Lights | Rooftop Lights |
+| #3 | Neon Rave | Rooftop Lights | Neon Rave | Gym Hero |
+| #4 | Gym Hero | Neon Rave | Concrete Jungle | Concrete Jungle |
+| #5 | Concrete Jungle | Concrete Jungle | Island Drift | Neon Rave |
+
+`genre_first` promotes *Gym Hero* (pop/intense) to #2 — same genre as the user, and the 0.30 genre weight overwhelms the mood mismatch. `mood_first` replaces *Gym Hero* entirely with *Island Drift* (reggae/uplifting), which has a strong `uplifting ~ happy (0.8)` partial match. `energy_focused` pushes *Neon Rave* (edm) down because its tempo normalizes to 0.87 vs the user's 0.63 — a 0.24 gap that now costs 0.06 points (25% weight × 0.24).
+
+#### Conflicting Energy + Mood
+
+| Rank | balanced | genre_first | mood_first | energy_focused |
+| --- | --- | --- | --- | --- |
+| #1 | Storm Runner | Storm Runner | Storm Runner | Storm Runner |
+| #2 | Iron Curtain | Night Drive Loop | Night Drive Loop | Gym Hero |
+| #3 | Night Drive Loop | Midnight Coding | Midnight Coding | Neon Rave |
+| #4 | Gym Hero | Rooftop Lights | Storm Runner | Iron Curtain |
+| #5 | Rooftop Lights | Iron Curtain | Library Rain | Sunrise City |
+
+This is the most revealing comparison. `mood_first` demotes *Iron Curtain* (metal/aggressive, mood mismatch) all the way to off the list and surfaces *Midnight Coding* and *Library Rain* — lofi tracks that partially match "chill" via mood proximity. `genre_first` does something different: it surfaces *Night Drive Loop* and *Midnight Coding* because the genre weight rewards the rock/synthwave/lofi cluster over pure numeric proximity. `energy_focused` makes the conflict worse — *Storm Runner* stays #1 with an even larger margin and the whole list fills with high-energy songs regardless of mood.
+
+### Key takeaways
+
+1. **`mood_first` is the best fix for the Conflicting Energy + Mood problem.** Tripling the mood weight (0.15 → 0.35) finally has enough force to override the energy signal and surfaces vibe-appropriate songs.
+2. **`genre_first` tightens the stylistic cluster but kills diversity.** For High-Energy Pop, slots #2–5 are all pop or pop-adjacent. For Chill Lofi, all 5 slots are lofi or ambient — no jazz, no folk, no cross-genre surprises.
+3. **`energy_focused` is reliable for activity profiles but fragile for mixed-intent users.** It correctly ranks Storm Runner and Gym Hero for workout users, but completely fails the Conflicting Energy + Mood profile.
+4. **#1 never changes for any profile.** The top song is so dominant across all features that no weight shift dislodges it. Diversity at the top requires a different mechanism — like a penalty for returning the same artist twice.
+
+---

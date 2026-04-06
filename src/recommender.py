@@ -87,22 +87,74 @@ def load_songs(csv_path: str) -> List[Dict]:
             })
     return songs
 
-# Weights across all 11 scored features (sum = 1.0).
-# Core audio features carry the most weight.
-# New features (popularity, decade, liveness, instrumentalness, loudness)
-# are secondary signals that break ties and add nuance.
-_WEIGHTS = {
-    "target_energy":          0.20,
-    "favorite_mood":          0.15,
-    "target_tempo":           0.12,
-    "target_valence":         0.10,
-    "target_acousticness":    0.08,
-    "favorite_genre":         0.08,
-    "target_popularity":      0.08,  # new: mainstream vs underground preference
-    "favorite_decade":        0.07,  # new: era preference
-    "target_liveness":        0.06,  # new: studio-polished vs raw live feel
-    "target_instrumentalness":0.04,  # new: vocal vs instrumental preference
-    "target_loudness":        0.02,  # new: quiet vs punchy preference
+# ---------------------------------------------------------------------------
+# Scoring modes — each is a complete weight dict that sums to 1.0.
+# Pass the mode name to score_song() / recommend_songs() to switch strategy.
+# ---------------------------------------------------------------------------
+SCORING_MODES: Dict[str, Dict[str, float]] = {
+
+    # All 11 features weighted proportionally. Good general-purpose default.
+    "balanced": {
+        "target_energy":           0.20,
+        "favorite_mood":           0.15,
+        "target_tempo":            0.12,
+        "target_valence":          0.10,
+        "target_acousticness":     0.08,
+        "favorite_genre":          0.08,
+        "target_popularity":       0.08,
+        "favorite_decade":         0.07,
+        "target_liveness":         0.06,
+        "target_instrumentalness": 0.04,
+        "target_loudness":         0.02,
+    },
+
+    # Genre and era dominate. Finds songs that fit the user's preferred
+    # stylistic box first, then breaks ties with audio features.
+    "genre_first": {
+        "favorite_genre":          0.30,
+        "favorite_decade":         0.15,
+        "favorite_mood":           0.15,
+        "target_energy":           0.10,
+        "target_tempo":            0.08,
+        "target_valence":          0.07,
+        "target_acousticness":     0.05,
+        "target_popularity":       0.04,
+        "target_liveness":         0.03,
+        "target_instrumentalness": 0.02,
+        "target_loudness":         0.01,
+    },
+
+    # Mood carries more than a third of the total score. Surfaces songs
+    # that match the user's emotional state even across genres.
+    "mood_first": {
+        "favorite_mood":           0.35,
+        "target_energy":           0.15,
+        "target_valence":          0.12,
+        "favorite_genre":          0.10,
+        "target_tempo":            0.08,
+        "target_acousticness":     0.07,
+        "target_popularity":       0.05,
+        "favorite_decade":         0.04,
+        "target_liveness":         0.02,
+        "target_instrumentalness": 0.01,
+        "target_loudness":         0.01,
+    },
+
+    # Energy and tempo together hold 65% of the score. Loudness adds another
+    # 10%. Best for activity-based contexts like workouts or study sessions.
+    "energy_focused": {
+        "target_energy":           0.40,
+        "target_tempo":            0.25,
+        "target_loudness":         0.10,
+        "favorite_mood":           0.08,
+        "target_valence":          0.05,
+        "target_acousticness":     0.04,
+        "favorite_genre":          0.03,
+        "target_popularity":       0.02,
+        "favorite_decade":         0.01,
+        "target_liveness":         0.01,
+        "target_instrumentalness": 0.01,
+    },
 }
 
 # Partial mood-similarity table (symmetric). Missing pairs default to 0.0.
@@ -174,8 +226,12 @@ def _decade_score(user_decade: str, song_decade: str) -> float:
     rev  = (song_decade, user_decade)
     return _DECADE_PROXIMITY.get(pair, _DECADE_PROXIMITY.get(rev, 0.0))
 
-def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, str]:
+def score_song(user_prefs: Dict, song: Dict, mode: str = "balanced") -> Tuple[float, str]:
     """Return a weighted similarity score and human-readable explanation for one song."""
+    if mode not in SCORING_MODES:
+        raise ValueError(f"Unknown mode '{mode}'. Choose from: {list(SCORING_MODES)}")
+    weights = SCORING_MODES[mode]
+
     reasons = []
     score = 0.0
 
@@ -197,7 +253,7 @@ def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, str]:
 
     for feature, (song_val, user_val) in numeric.items():
         diff = abs(song_val - user_val)
-        score += _WEIGHTS[feature] * (1 - diff)
+        score += weights[feature] * (1 - diff)
         label = feature.replace("target_", "")
         if diff <= 0.1:
             reasons.append(f"{label} closely matches (diff={diff:.2f})")
@@ -206,7 +262,7 @@ def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, str]:
 
     # --- Mood (partial match) ---
     mood_sim = _mood_score(user_prefs["favorite_mood"], song["mood"])
-    score += _WEIGHTS["favorite_mood"] * mood_sim
+    score += weights["favorite_mood"] * mood_sim
     if mood_sim == 1.0:
         reasons.append(f"mood is an exact match ({song['mood']})")
     elif mood_sim > 0.0:
@@ -216,14 +272,14 @@ def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, str]:
 
     # --- Genre (exact match) ---
     if song["genre"] == user_prefs["favorite_genre"]:
-        score += _WEIGHTS["favorite_genre"]
+        score += weights["favorite_genre"]
         reasons.append(f"genre matches ({song['genre']})")
     else:
         reasons.append(f"genre does not match ({song['genre']} vs {user_prefs['favorite_genre']})")
 
     # --- Decade (partial match) ---
     decade_sim = _decade_score(user_prefs["favorite_decade"], song["release_decade"])
-    score += _WEIGHTS["favorite_decade"] * decade_sim
+    score += weights["favorite_decade"] * decade_sim
     if decade_sim == 1.0:
         reasons.append(f"decade matches ({song['release_decade']})")
     elif decade_sim > 0.0:
@@ -233,10 +289,10 @@ def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, str]:
 
     return score, "; ".join(reasons)
 
-def recommend_songs(user_prefs: Dict, songs: List[Dict], k: int = 5) -> List[Tuple[Dict, float, str]]:
+def recommend_songs(user_prefs: Dict, songs: List[Dict], k: int = 5, mode: str = "balanced") -> List[Tuple[Dict, float, str]]:
     """Score all songs and return the top-k as (song, score, explanation) tuples."""
     scored = sorted(
-        ((song, *score_song(user_prefs, song)) for song in songs),
+        ((song, *score_song(user_prefs, song, mode)) for song in songs),
         key=lambda item: item[1],
         reverse=True,
     )
