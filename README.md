@@ -610,3 +610,45 @@ The top 3 are all lofi tracks with chill or adjacent moods: *Midnight Coding*, *
 This is where musical intuition and the scorer diverge most clearly. The user wants **high energy (0.9) but chill mood** — think chillstep, lo-fi drum and bass, or atmospheric electronic. The system returns *Storm Runner* (hard rock/intense) at #1 because energy+tempo (45% combined weight) dominate the chill mood penalty (20% weight). A real listener would find this jarring. The scoring formula has no concept of "genre adjacency to the requested vibe" — it sees matching numbers, not matching feel. **This confirms that numeric proximity alone cannot capture listener intent when features conflict, and that mood weight at 0.20 is too weak to veto a strong numeric match.**
 
 ---
+
+## Challenge 1: Advanced Song Features
+
+### What was added
+
+5 new columns were added to `data/songs.csv` and integrated into the scoring logic in `src/recommender.py`:
+
+| Feature | Type | Range | What it captures |
+| --- | --- | --- | --- |
+| `popularity` | int | 0–100 | Mainstream vs underground. Neon Rave = 82, Delta Crossroads = 24 |
+| `release_decade` | string | 1990s–2020s | Era feel. Delta Crossroads = 1990s, all lofi tracks = 2020s |
+| `liveness` | float | 0–1 | Studio-polished (0.06) vs raw live feel. Coffee Shop Stories = 0.62, Delta Crossroads = 0.71 |
+| `instrumentalness` | float | 0–1 | Vocal-heavy near 0 (Gym Hero = 0.03) to fully instrumental (Moonlight Sonata = 0.98) |
+| `loudness_norm` | float | 0–1 | Quiet ambient (Spacewalk Thoughts = 0.18) to wall-of-sound metal (Iron Curtain = 0.95) |
+
+Weights were rebalanced across all 11 scored features so the sum stays 1.0. Core audio features still lead; the 5 new features act as secondary tiebreakers (weights 0.02–0.08).
+
+A `_DECADE_PROXIMITY` table was added for partial era matching — adjacent decades score 0.8, two apart score 0.5, and so on.
+
+The `_MOOD_PROXIMITY` table was also expanded to cover the 7 previously orphaned moods (`dreamy`, `groovy`, `melancholic`, `nostalgic`, `romantic`, `soulful`, `uplifting`), fixing the mood orphan bias documented earlier.
+
+### Findings
+
+**1. Mood orphan bias is fixed.**
+The 7 previously invisible moods now have proximity entries. *Fuego Lento* (dreamy) and *Dusty Road Home* (nostalgic) now surface in relevant profiles because `dreamy ~ peaceful (0.6)` and `nostalgic ~ relaxed (0.5)` give them partial mood credit they never had before.
+
+**2. New features act as tiebreakers, not score drivers.**
+At weights of 0.02–0.08, the new features rarely change the #1 result but do shift lower-ranked slots. *Candlelight Folk* (high liveness = 0.55, high instrumentalness = 0.42) now appears in the Chill Lofi top 5 where it previously didn't — the instrumentalness match pushed it past songs with weaker numeric alignment.
+
+**3. Popularity separates otherwise tied songs.**
+Several songs that scored similarly on audio features now get differentiated by popularity proximity. A user targeting underground music (target popularity = 0.40) now ranks *Library Rain* (38) above *Midnight Coding* (45) by a small but consistent margin.
+
+**4. Decade matching adds era preference without dominating.**
+At weight 0.07, decade matching is roughly equivalent to a weak genre signal. A user who prefers 2020s music gets a small boost for 2020s tracks and a measurable penalty for 1990s tracks like *Delta Crossroads* — without burying it completely if the audio features are a strong match.
+
+**5. The filter bubble is slightly reduced.**
+With more differentiating features, more songs find at least one profile where they rank well. Songs like *Delta Crossroads* (1990s, high liveness, soulful) now match the Unknown Genre profile more precisely, pushing it into the top 5 in cases where it was previously edged out by lofi tracks with better mood proximity.
+
+**6. Scores are richer and more explainable.**
+Each recommendation now shows up to 11 bullet-point reasons instead of 6. A user can see not just "energy closely matches" but also "liveness closely matches (diff=0.02)" and "decade matches (2020s)", making the output more informative and easier to audit.
+
+---

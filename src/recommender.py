@@ -17,6 +17,11 @@ class Song:
     valence: float
     danceability: float
     acousticness: float
+    popularity: int
+    release_decade: str
+    liveness: float
+    instrumentalness: float
+    loudness_norm: float
 
 @dataclass
 class UserProfile:
@@ -24,13 +29,18 @@ class UserProfile:
     Represents a user's taste preferences.
     Required by tests/test_recommender.py
     """
-    favorite_genre: str       # categorical — exact or partial match against song genre
-    favorite_mood: str        # categorical — exact or partial match against song mood
-    target_energy: float      # 0.0–1.0 proximity target
-    target_tempo: float       # normalized 0.0–1.0, i.e. (bpm - 60) / (152 - 60)
-    target_valence: float     # 0.0–1.0 proximity target
-    target_danceability: float  # 0.0–1.0 proximity target
-    target_acousticness: float  # 0.0–1.0 proximity target
+    favorite_genre: str           # exact match against song genre
+    favorite_mood: str            # partial match via _MOOD_PROXIMITY table
+    target_energy: float          # 0.0–1.0 proximity target
+    target_tempo: float           # normalized 0.0–1.0, i.e. (bpm - 60) / (152 - 60)
+    target_valence: float         # 0.0–1.0 proximity target
+    target_danceability: float    # 0.0–1.0 proximity target
+    target_acousticness: float    # 0.0–1.0 proximity target
+    target_popularity: float      # 0.0–1.0 (popularity / 100)
+    favorite_decade: str          # partial match via _DECADE_PROXIMITY table
+    target_liveness: float        # 0.0–1.0 proximity target
+    target_instrumentalness: float  # 0.0–1.0 proximity target
+    target_loudness: float        # 0.0–1.0 proximity target
 
 class Recommender:
     """
@@ -59,49 +69,93 @@ def load_songs(csv_path: str) -> List[Dict]:
         reader = csv.DictReader(f)
         for row in reader:
             songs.append({
-                "id": int(row["id"]),
-                "title": row["title"],
-                "artist": row["artist"],
-                "genre": row["genre"],
-                "mood": row["mood"],
-                "energy": float(row["energy"]),
-                "tempo_bpm": float(row["tempo_bpm"]),
-                "valence": float(row["valence"]),
-                "danceability": float(row["danceability"]),
-                "acousticness": float(row["acousticness"]),
+                "id":               int(row["id"]),
+                "title":            row["title"],
+                "artist":           row["artist"],
+                "genre":            row["genre"],
+                "mood":             row["mood"],
+                "energy":           float(row["energy"]),
+                "tempo_bpm":        float(row["tempo_bpm"]),
+                "valence":          float(row["valence"]),
+                "danceability":     float(row["danceability"]),
+                "acousticness":     float(row["acousticness"]),
+                "popularity":       int(row["popularity"]),
+                "release_decade":   row["release_decade"],
+                "liveness":         float(row["liveness"]),
+                "instrumentalness": float(row["instrumentalness"]),
+                "loudness_norm":    float(row["loudness_norm"]),
             })
     return songs
 
-# Weight shift experiment: energy doubled (0.25→0.50), genre halved (0.10→0.05).
-# Remaining four weights scaled proportionally so sum stays 1.0.
-# Original → New: mood 0.20→0.14, tempo 0.20→0.14, valence 0.15→0.10, acousticness 0.10→0.07
+# Weights across all 11 scored features (sum = 1.0).
+# Core audio features carry the most weight.
+# New features (popularity, decade, liveness, instrumentalness, loudness)
+# are secondary signals that break ties and add nuance.
 _WEIGHTS = {
-    "target_energy":       0.50,   # was 0.25
-    "favorite_mood":       0.14,   # was 0.20
-    "target_tempo":        0.14,   # was 0.20
-    "target_valence":      0.10,   # was 0.15
-    "target_acousticness": 0.07,   # was 0.10
-    "favorite_genre":      0.05,   # was 0.10
+    "target_energy":          0.20,
+    "favorite_mood":          0.15,
+    "target_tempo":           0.12,
+    "target_valence":         0.10,
+    "target_acousticness":    0.08,
+    "favorite_genre":         0.08,
+    "target_popularity":      0.08,  # new: mainstream vs underground preference
+    "favorite_decade":        0.07,  # new: era preference
+    "target_liveness":        0.06,  # new: studio-polished vs raw live feel
+    "target_instrumentalness":0.04,  # new: vocal vs instrumental preference
+    "target_loudness":        0.02,  # new: quiet vs punchy preference
 }
 
-# Partial mood-similarity table (symmetric).  Missing pairs default to 0.0
-# (exact match returns 1.0, handled separately).
+# Partial mood-similarity table (symmetric). Missing pairs default to 0.0.
+# Exact match returns 1.0, handled separately in _mood_score.
 _MOOD_PROXIMITY: Dict[Tuple[str, str], float] = {
-    ("chill",    "relaxed"):  0.7,
-    ("chill",    "focused"):  0.5,
-    ("chill",    "peaceful"): 0.6,
-    ("chill",    "moody"):    0.3,
-    ("chill",    "happy"):    0.2,
-    ("chill",    "intense"):  0.0,
-    ("relaxed",  "focused"):  0.6,
-    ("relaxed",  "peaceful"): 0.8,
-    ("relaxed",  "moody"):    0.4,
-    ("relaxed",  "happy"):    0.3,
-    ("focused",  "moody"):    0.3,
-    ("happy",    "euphoric"): 0.7,
-    ("happy",    "energetic"):0.5,
-    ("intense",  "aggressive"):0.7,
-    ("intense",  "energetic"):0.6,
+    ("chill",     "relaxed"):   0.7,
+    ("chill",     "focused"):   0.5,
+    ("chill",     "peaceful"):  0.6,
+    ("chill",     "moody"):     0.3,
+    ("chill",     "happy"):     0.2,
+    ("chill",     "intense"):   0.0,
+    ("relaxed",   "focused"):   0.6,
+    ("relaxed",   "peaceful"):  0.8,
+    ("relaxed",   "moody"):     0.4,
+    ("relaxed",   "happy"):     0.3,
+    ("relaxed",   "nostalgic"): 0.5,
+    ("relaxed",   "romantic"):  0.6,
+    ("focused",   "moody"):     0.3,
+    ("happy",     "euphoric"):  0.7,
+    ("happy",     "uplifting"): 0.8,
+    ("happy",     "groovy"):    0.6,
+    ("happy",     "romantic"):  0.4,
+    ("happy",     "dreamy"):    0.3,
+    ("intense",   "aggressive"):0.7,
+    ("intense",   "energetic"): 0.6,
+    ("intense",   "groovy"):    0.3,
+    ("peaceful",  "nostalgic"): 0.5,
+    ("peaceful",  "dreamy"):    0.6,
+    ("peaceful",  "romantic"):  0.5,
+    ("moody",     "melancholic"):0.7,
+    ("moody",     "nostalgic"): 0.5,
+    ("moody",     "dreamy"):    0.4,
+    ("soulful",   "nostalgic"): 0.6,
+    ("soulful",   "melancholic"):0.5,
+    ("soulful",   "romantic"):  0.4,
+    ("dreamy",    "romantic"):  0.5,
+    ("euphoric",  "uplifting"): 0.7,
+    ("euphoric",  "groovy"):    0.5,
+    ("uplifting", "groovy"):    0.6,
+}
+
+# Decade proximity: adjacent decades score 0.8, two apart 0.5, etc.
+_DECADE_PROXIMITY: Dict[Tuple[str, str], float] = {
+    ("2020s", "2010s"): 0.8,
+    ("2020s", "2000s"): 0.5,
+    ("2020s", "1990s"): 0.3,
+    ("2020s", "1980s"): 0.1,
+    ("2010s", "2000s"): 0.8,
+    ("2010s", "1990s"): 0.5,
+    ("2010s", "1980s"): 0.3,
+    ("2000s", "1990s"): 0.8,
+    ("2000s", "1980s"): 0.5,
+    ("1990s", "1980s"): 0.8,
 }
 
 def _mood_score(user_mood: str, song_mood: str) -> float:
@@ -112,31 +166,45 @@ def _mood_score(user_mood: str, song_mood: str) -> float:
     rev  = (song_mood, user_mood)
     return _MOOD_PROXIMITY.get(pair, _MOOD_PROXIMITY.get(rev, 0.0))
 
+def _decade_score(user_decade: str, song_decade: str) -> float:
+    """Return a [0, 1] similarity between two release decades."""
+    if user_decade == song_decade:
+        return 1.0
+    pair = (user_decade, song_decade)
+    rev  = (song_decade, user_decade)
+    return _DECADE_PROXIMITY.get(pair, _DECADE_PROXIMITY.get(rev, 0.0))
+
 def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, str]:
     """Return a weighted similarity score and human-readable explanation for one song."""
     reasons = []
-
-    # STEP 1 — normalize tempo
-    tempo_norm = (song["tempo_bpm"] - 60) / (152 - 60)
-
-    # STEP 2 — numeric feature scores
-    numeric = {
-        "target_energy":       abs(song["energy"]      - user_prefs["target_energy"]),
-        "target_tempo":        abs(tempo_norm           - user_prefs["target_tempo"]),
-        "target_valence":      abs(song["valence"]      - user_prefs["target_valence"]),
-        "target_acousticness": abs(song["acousticness"] - user_prefs["target_acousticness"]),
-    }
     score = 0.0
-    for feature, diff in numeric.items():
-        feature_score = 1 - diff
-        score += _WEIGHTS[feature] * feature_score
+
+    # --- Numeric proximity features ---
+    # tempo_bpm normalized to [0, 1] before scoring
+    tempo_norm = (song["tempo_bpm"] - 60) / (152 - 60)
+    pop_norm   = song["popularity"] / 100.0
+
+    numeric = {
+        "target_energy":           (song["energy"],           user_prefs["target_energy"]),
+        "target_tempo":            (tempo_norm,               user_prefs["target_tempo"]),
+        "target_valence":          (song["valence"],          user_prefs["target_valence"]),
+        "target_acousticness":     (song["acousticness"],     user_prefs["target_acousticness"]),
+        "target_popularity":       (pop_norm,                 user_prefs["target_popularity"]),
+        "target_liveness":         (song["liveness"],         user_prefs["target_liveness"]),
+        "target_instrumentalness": (song["instrumentalness"], user_prefs["target_instrumentalness"]),
+        "target_loudness":         (song["loudness_norm"],    user_prefs["target_loudness"]),
+    }
+
+    for feature, (song_val, user_val) in numeric.items():
+        diff = abs(song_val - user_val)
+        score += _WEIGHTS[feature] * (1 - diff)
         label = feature.replace("target_", "")
         if diff <= 0.1:
             reasons.append(f"{label} closely matches (diff={diff:.2f})")
         elif diff >= 0.4:
             reasons.append(f"{label} is far off (diff={diff:.2f})")
 
-    # STEP 3 — mood (partial match)
+    # --- Mood (partial match) ---
     mood_sim = _mood_score(user_prefs["favorite_mood"], song["mood"])
     score += _WEIGHTS["favorite_mood"] * mood_sim
     if mood_sim == 1.0:
@@ -146,15 +214,24 @@ def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, str]:
     else:
         reasons.append(f"mood does not match ({song['mood']} vs {user_prefs['favorite_mood']})")
 
-    # STEP 4 — genre (exact match)
+    # --- Genre (exact match) ---
     if song["genre"] == user_prefs["favorite_genre"]:
         score += _WEIGHTS["favorite_genre"]
         reasons.append(f"genre matches ({song['genre']})")
     else:
         reasons.append(f"genre does not match ({song['genre']} vs {user_prefs['favorite_genre']})")
 
-    explanation = "; ".join(reasons)
-    return score, explanation
+    # --- Decade (partial match) ---
+    decade_sim = _decade_score(user_prefs["favorite_decade"], song["release_decade"])
+    score += _WEIGHTS["favorite_decade"] * decade_sim
+    if decade_sim == 1.0:
+        reasons.append(f"decade matches ({song['release_decade']})")
+    elif decade_sim > 0.0:
+        reasons.append(f"decade is close ({song['release_decade']} ~ {user_prefs['favorite_decade']}, sim={decade_sim})")
+    else:
+        reasons.append(f"decade is far off ({song['release_decade']} vs {user_prefs['favorite_decade']})")
+
+    return score, "; ".join(reasons)
 
 def recommend_songs(user_prefs: Dict, songs: List[Dict], k: int = 5) -> List[Tuple[Dict, float, str]]:
     """Score all songs and return the top-k as (song, score, explanation) tuples."""

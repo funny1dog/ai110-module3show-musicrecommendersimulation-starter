@@ -14,96 +14,129 @@ from recommender import load_songs, recommend_songs
 
 USERS = {
     "Chill Lofi": {
-        "favorite_genre":      "lofi",
-        "favorite_mood":       "chill",
-        "target_energy":       0.40,
-        "target_tempo":        0.20,   # (78 bpm - 60) / 92 ≈ 0.20
-        "target_valence":      0.60,
-        "target_danceability": 0.58,
-        "target_acousticness": 0.75,
+        "favorite_genre":          "lofi",
+        "favorite_mood":           "chill",
+        "target_energy":           0.40,
+        "target_tempo":            0.20,   # (78 bpm - 60) / 92 ≈ 0.20
+        "target_valence":          0.60,
+        "target_danceability":     0.58,
+        "target_acousticness":     0.75,
+        "target_popularity":       0.40,   # prefers underground / niche
+        "favorite_decade":         "2020s",
+        "target_liveness":         0.10,   # prefers studio-polished
+        "target_instrumentalness": 0.80,   # mostly instrumental
+        "target_loudness":         0.40,   # quiet
     },
     "High-Energy Pop": {
-        "favorite_genre":      "pop",
-        "favorite_mood":       "happy",
-        "target_energy":       0.85,
-        "target_tempo":        0.63,   # (118 bpm - 60) / 92 ≈ 0.63
-        "target_valence":      0.88,
-        "target_danceability": 0.80,
-        "target_acousticness": 0.15,
+        "favorite_genre":          "pop",
+        "favorite_mood":           "happy",
+        "target_energy":           0.85,
+        "target_tempo":            0.63,   # (118 bpm - 60) / 92 ≈ 0.63
+        "target_valence":          0.88,
+        "target_danceability":     0.80,
+        "target_acousticness":     0.15,
+        "target_popularity":       0.80,   # prefers mainstream hits
+        "favorite_decade":         "2020s",
+        "target_liveness":         0.10,   # studio polished
+        "target_instrumentalness": 0.05,   # wants vocals
+        "target_loudness":         0.85,   # loud and punchy
     },
     "Deep Intense Rock": {
-        "favorite_genre":      "rock",
-        "favorite_mood":       "intense",
-        "target_energy":       0.92,
-        "target_tempo":        1.00,   # (152 bpm - 60) / 92 = 1.00
-        "target_valence":      0.40,
-        "target_danceability": 0.60,
-        "target_acousticness": 0.10,
+        "favorite_genre":          "rock",
+        "favorite_mood":           "intense",
+        "target_energy":           0.92,
+        "target_tempo":            1.00,   # (152 bpm - 60) / 92 = 1.00
+        "target_valence":          0.40,
+        "target_danceability":     0.60,
+        "target_acousticness":     0.10,
+        "target_popularity":       0.55,   # mid-tier popularity
+        "favorite_decade":         "2010s",
+        "target_liveness":         0.20,   # slight live energy is fine
+        "target_instrumentalness": 0.10,   # prefers vocals / lyrics
+        "target_loudness":         0.90,   # very loud
     },
 
     # --- Adversarial / edge-case profiles ---
 
     # Conflicting signal: numeric features push toward high-energy rock,
     # but mood targets the opposite end of the spectrum.
-    # Exposes whether the 0.20 mood weight can override numeric proximity.
     "Conflicting Energy + Mood": {
-        "favorite_genre":      "rock",
-        "favorite_mood":       "chill",
-        "target_energy":       0.90,
-        "target_tempo":        0.90,
-        "target_valence":      0.20,
-        "target_danceability": 0.65,
-        "target_acousticness": 0.10,
+        "favorite_genre":          "rock",
+        "favorite_mood":           "chill",
+        "target_energy":           0.90,
+        "target_tempo":            0.90,
+        "target_valence":          0.20,
+        "target_danceability":     0.65,
+        "target_acousticness":     0.10,
+        "target_popularity":       0.50,
+        "favorite_decade":         "2010s",
+        "target_liveness":         0.15,
+        "target_instrumentalness": 0.10,
+        "target_loudness":         0.85,
     },
 
     # All numeric targets at the midpoint.
-    # Every song is roughly equidistant; scores compress and top-k
-    # is decided almost entirely by mood/genre exact matches.
     "All Midpoint": {
-        "favorite_genre":      "pop",
-        "favorite_mood":       "happy",
-        "target_energy":       0.50,
-        "target_tempo":        0.50,
-        "target_valence":      0.50,
-        "target_danceability": 0.50,
-        "target_acousticness": 0.50,
+        "favorite_genre":          "pop",
+        "favorite_mood":           "happy",
+        "target_energy":           0.50,
+        "target_tempo":            0.50,
+        "target_valence":          0.50,
+        "target_danceability":     0.50,
+        "target_acousticness":     0.50,
+        "target_popularity":       0.50,
+        "favorite_decade":         "2010s",
+        "target_liveness":         0.50,
+        "target_instrumentalness": 0.50,
+        "target_loudness":         0.50,
     },
 
-    # Genre and mood that don't exist in the catalog.
-    # The 0.30 combined weight for mood + genre always scores 0;
-    # ranking falls back entirely on numeric proximity.
+    # Genre and mood absent from catalog; falls back on numeric features.
     "Unknown Genre and Mood": {
-        "favorite_genre":      "classical",
-        "favorite_mood":       "peaceful",
-        "target_energy":       0.30,
-        "target_tempo":        0.15,
-        "target_valence":      0.70,
-        "target_danceability": 0.40,
-        "target_acousticness": 0.80,
+        "favorite_genre":          "classical",
+        "favorite_mood":           "peaceful",
+        "target_energy":           0.30,
+        "target_tempo":            0.15,
+        "target_valence":          0.70,
+        "target_danceability":     0.40,
+        "target_acousticness":     0.80,
+        "target_popularity":       0.25,   # obscure / niche
+        "favorite_decade":         "2000s",
+        "target_liveness":         0.35,
+        "target_instrumentalness": 0.85,
+        "target_loudness":         0.20,
     },
 
-    # Every target at 0.0 — checks whether any song is artificially
-    # rewarded just for having uniformly low feature values.
+    # Every target at 0.0
     "All Zeros": {
-        "favorite_genre":      "ambient",
-        "favorite_mood":       "chill",
-        "target_energy":       0.0,
-        "target_tempo":        0.0,
-        "target_valence":      0.0,
-        "target_danceability": 0.0,
-        "target_acousticness": 0.0,
+        "favorite_genre":          "ambient",
+        "favorite_mood":           "chill",
+        "target_energy":           0.0,
+        "target_tempo":            0.0,
+        "target_valence":          0.0,
+        "target_danceability":     0.0,
+        "target_acousticness":     0.0,
+        "target_popularity":       0.0,
+        "favorite_decade":         "1980s",
+        "target_liveness":         0.0,
+        "target_instrumentalness": 0.0,
+        "target_loudness":         0.0,
     },
 
-    # Every target at 1.0 — symmetric opposite of All Zeros;
-    # verifies high-feature songs don't unfairly dominate.
+    # Every target at 1.0
     "All Ones": {
-        "favorite_genre":      "rock",
-        "favorite_mood":       "intense",
-        "target_energy":       1.0,
-        "target_tempo":        1.0,
-        "target_valence":      1.0,
-        "target_danceability": 1.0,
-        "target_acousticness": 1.0,
+        "favorite_genre":          "rock",
+        "favorite_mood":           "intense",
+        "target_energy":           1.0,
+        "target_tempo":            1.0,
+        "target_valence":          1.0,
+        "target_danceability":     1.0,
+        "target_acousticness":     1.0,
+        "target_popularity":       1.0,
+        "favorite_decade":         "2020s",
+        "target_liveness":         1.0,
+        "target_instrumentalness": 1.0,
+        "target_loudness":         1.0,
     },
 }
 
