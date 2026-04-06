@@ -159,11 +159,22 @@ def main() -> None:
     songs = load_songs("data/songs.csv")
     print(f"Loaded {len(songs)} songs from the dataset.")
 
-    # --- Standard profiles across all scoring modes ---
+    # --- Scoring modes (diversity off) ---
     for label, user_prefs in USERS.items():
         for mode in SCORING_MODES:
-            recommendations = recommend_songs(user_prefs, songs, k=5, mode=mode)
-            print_recommendations(f"{label}  [{mode}]", recommendations)
+            recs = recommend_songs(user_prefs, songs, k=5, mode=mode)
+            print_recommendations(f"{label}  [{mode}]", recs)
+
+    # --- Diversity penalty comparison (balanced mode) ---
+    print("\n" + "#" * 50)
+    print("  DIVERSITY PENALTY COMPARISON  (balanced mode)")
+    print("#" * 50)
+    for label, user_prefs in USERS.items():
+        recs_off = recommend_songs(user_prefs, songs, k=5, mode="balanced", diversity=False)
+        recs_on  = recommend_songs(user_prefs, songs, k=5, mode="balanced", diversity=True,
+                                   artist_penalty=0.5, genre_penalty=0.7)
+        print_recommendations(f"{label}  [diversity=OFF]", recs_off)
+        print_recommendations(f"{label}  [diversity=ON  artist×0.5  genre×0.7]", recs_on)
 
 
 if __name__ == "__main__":

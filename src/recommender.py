@@ -289,11 +289,61 @@ def score_song(user_prefs: Dict, song: Dict, mode: str = "balanced") -> Tuple[fl
 
     return score, "; ".join(reasons)
 
-def recommend_songs(user_prefs: Dict, songs: List[Dict], k: int = 5, mode: str = "balanced") -> List[Tuple[Dict, float, str]]:
-    """Score all songs and return the top-k as (song, score, explanation) tuples."""
+def rerank_with_diversity(
+    scored: List[Tuple[Dict, float, str]],
+    k: int = 5,
+    artist_penalty: float = 0.5,
+    genre_penalty: float = 0.7,
+) -> List[Tuple[Dict, float, str]]:
+    """Greedily pick k songs, penalising candidates that repeat an artist or genre.
+
+    Already-selected artists incur artist_penalty (multiplier < 1.0) on a
+    candidate's effective score.  Already-selected genres incur genre_penalty.
+    Both penalties stack multiplicatively when a song matches on both dimensions.
+    The original score stored in the returned tuple is unchanged — only the
+    selection order is affected by the penalties.
+    """
+    selected: List[Tuple[Dict, float, str]] = []
+    remaining = list(scored)
+
+    while len(selected) < k and remaining:
+        seen_artists = {s["artist"] for s, _, _ in selected}
+        seen_genres  = {s["genre"]  for s, _, _ in selected}
+
+        best_idx, best_effective = 0, -1.0
+        for i, (song, score, explanation) in enumerate(remaining):
+            effective = score
+            if song["artist"] in seen_artists:
+                effective *= artist_penalty
+            if song["genre"] in seen_genres:
+                effective *= genre_penalty
+            if effective > best_effective:
+                best_effective, best_idx = effective, i
+
+        selected.append(remaining.pop(best_idx))
+
+    return selected
+
+
+def recommend_songs(
+    user_prefs: Dict,
+    songs: List[Dict],
+    k: int = 5,
+    mode: str = "balanced",
+    diversity: bool = False,
+    artist_penalty: float = 0.5,
+    genre_penalty: float = 0.7,
+) -> List[Tuple[Dict, float, str]]:
+    """Score all songs and return the top-k as (song, score, explanation) tuples.
+
+    Set diversity=True to apply a re-ranking pass that penalises repeated
+    artists (artist_penalty) and genres (genre_penalty) in the final list.
+    """
     scored = sorted(
         ((song, *score_song(user_prefs, song, mode)) for song in songs),
         key=lambda item: item[1],
         reverse=True,
     )
+    if diversity:
+        return rerank_with_diversity(scored, k, artist_penalty, genre_penalty)
     return [(song, score, explanation) for song, score, explanation in scored[:k]]

@@ -717,3 +717,71 @@ This is the most revealing comparison. `mood_first` demotes *Iron Curtain* (meta
 4. **#1 never changes for any profile.** The top song is so dominant across all features that no weight shift dislodges it. Diversity at the top requires a different mechanism — like a penalty for returning the same artist twice.
 
 ---
+## Challenge 3: Diversity and Fairness Logic
+
+### What was built
+
+A `rerank_with_diversity()` function was added to `src/recommender.py`. After all songs are scored, it greedily builds the top-k list one slot at a time. Before picking each song, it applies multiplier penalties to any candidate that repeats an artist or genre already in the list:
+
+- **Artist penalty (default 0.5):** halves the effective score of a song whose artist already appears. Strong deterrent — the catalog has a few artists with multiple tracks (LoRoom has 2 lofi songs, Neon Echo has 2).
+- **Genre penalty (default 0.7):** reduces the effective score by 30% for a repeated genre. Gentler push — genre diversity is less critical than artist diversity for short lists.
+- **Penalties stack:** a song that repeats both artist and genre gets `score × 0.5 × 0.7 = score × 0.35`.
+
+The original score stored in the returned tuple is **unchanged** — only the selection order is affected. This keeps scoring and diversity as separate, independent steps.
+
+**How to use:**
+
+```python
+# diversity off (default)
+recommend_songs(user_prefs, songs, k=5, mode="balanced")
+
+# diversity on with default penalties
+recommend_songs(user_prefs, songs, k=5, mode="balanced", diversity=True)
+
+# diversity on with custom penalties
+recommend_songs(user_prefs, songs, k=5, mode="balanced",
+                diversity=True, artist_penalty=0.3, genre_penalty=0.8)
+```
+
+### Findings: what changed with diversity=ON
+
+#### Chill Lofi — biggest impact
+
+| Rank | diversity=OFF | diversity=ON |
+| --- | --- | --- |
+| #1 | Midnight Coding (lofi / LoRoom) | Midnight Coding (lofi / LoRoom) |
+| #2 | Library Rain (lofi / Paper Lanterns) | **Spacewalk Thoughts (ambient / Orbit Bloom)** |
+| #3 | Focus Flow (lofi / LoRoom) | **Candlelight Folk (folk / Wren & Hollow)** |
+| #4 | Spacewalk Thoughts (ambient / Orbit Bloom) | **Coffee Shop Stories (jazz / Slow Stereo)** |
+| #5 | Candlelight Folk (folk / Wren & Hollow) | **Library Rain (lofi / Paper Lanterns)** |
+
+Without diversity, slots #2–#3 were both lofi tracks from LoRoom (same artist). The artist penalty halved *Focus Flow*'s effective score, pushing it out of the top 3. *Library Rain* falls to #5 because the lofi genre penalty accumulates after *Midnight Coding* is selected. The result spans 4 genres (lofi, ambient, folk, jazz) instead of a single lofi cluster.
+
+#### High-Energy Pop — minor shift at the bottom
+
+| Rank | diversity=OFF | diversity=ON |
+| --- | --- | --- |
+| #1 | Sunrise City (pop / Neon Echo) | Sunrise City (pop / Neon Echo) |
+| #2 | Rooftop Lights (indie pop / Indigo Parade) | Rooftop Lights (indie pop / Indigo Parade) |
+| #3 | Neon Rave (edm / Pulse Grid) | Neon Rave (edm / Pulse Grid) |
+| #4 | Gym Hero (pop / Max Pulse) | **Concrete Jungle (hip-hop / Verse City)** |
+| #5 | Concrete Jungle (hip-hop / Verse City) | **Fuego Lento (latin / Casa Ritmo)** |
+
+*Gym Hero* drops from #4 to off-list — it's pop genre (same as *Sunrise City*), so it takes a 0.7× genre penalty. *Fuego Lento* (latin/dreamy), previously out of the top 5, enters at #5 because every other candidate already carries a genre penalty.
+
+#### Deep Intense Rock and Conflicting Energy + Mood — no change
+
+All 5 songs in these lists already have unique artists and unique genres, so no penalties fire. Diversity only matters when the top-scoring songs cluster around the same artist or genre.
+
+#### All Zeros — swap at #3/#4
+
+*Midnight Coding* (lofi / LoRoom) drops from #3 to off-list because *Library Rain* (also lofi) was already selected at #2. *Coffee Shop Stories* (jazz) and *Moonlight Sonata* (classical) move up, and *Candlelight Folk* (folk) enters at #5.
+
+### Key takeaways
+
+1. **Diversity has the most impact when the catalog has multi-song artists or genre clusters.** Chill Lofi is the clearest case: LoRoom has two lofi tracks that both score near the top, and without diversity both appear in slots #2–#3.
+2. **The penalty does not change scores — only selection order.** A penalised song can still appear in the list if no better alternative exists. *Library Rain* still appears at #5 for Chill Lofi because after 4 unique-genre songs are picked, it's the best remaining option.
+3. **Strong artist penalty (0.5) moves the needle more than the genre penalty (0.7).** The artist penalty is the main driver of visible change. Raising genre penalty to 0.5 would break up genre clusters more aggressively but risks surfacing songs the user doesn't want at all.
+4. **Diversity cannot fix a sparse catalog.** For Deep Intense Rock, all top-5 songs already have unique artists and genres — there's no clustering to break. The fairness problem there is that only one rock song exists, not that the same artist repeats.
+
+---
