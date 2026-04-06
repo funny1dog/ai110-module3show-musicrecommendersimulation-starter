@@ -9,6 +9,7 @@ You will implement the functions in recommender.py:
 - recommend_songs
 """
 
+from tabulate import tabulate
 from recommender import load_songs, recommend_songs, SCORING_MODES
 
 
@@ -142,17 +143,36 @@ USERS = {
 
 
 def print_recommendations(label: str, recommendations: list) -> None:
-    """Print a labeled recommendation block to the terminal."""
-    print("\n" + "=" * 50)
-    print(f"  {label}")
-    print("=" * 50)
+    """Print a summary table followed by per-song reasons."""
+    width = 62
+    print("\n" + "╔" + "═" * width + "╗")
+    print("║  " + label.ljust(width - 4) + "  ║")
+    print("╚" + "═" * width + "╝")
+
+    # --- Summary table ---
+    rows = [
+        (
+            f"#{rank}",
+            song["title"][:22],
+            song["artist"][:16],
+            song["genre"][:10],
+            song["mood"][:10],
+            f"{score:.2f}",
+        )
+        for rank, (song, score, _) in enumerate(recommendations, start=1)
+    ]
+    headers = ["", "Title", "Artist", "Genre", "Mood", "Score"]
+    print()
+    print(tabulate(rows, headers=headers, tablefmt="simple", colalign=("right",) + ("left",) * 5))
+
+    # --- Reasons block ---
+    print()
+    print("  Why each song was picked:")
     for rank, (song, score, explanation) in enumerate(recommendations, start=1):
-        print(f"\n#{rank}  {song['title']}  —  {song['artist']}")
-        print(f"     Score : {score:.2f}  |  Genre: {song['genre']}  |  Mood: {song['mood']}")
-        print("     Why   :")
+        print(f"  #{rank} {song['title']}")
         for reason in explanation.split("; "):
-            print(f"       • {reason}")
-    print("\n" + "=" * 50)
+            print(f"      • {reason}")
+    print()
 
 
 def main() -> None:

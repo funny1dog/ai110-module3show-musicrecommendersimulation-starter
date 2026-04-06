@@ -785,3 +785,121 @@ All 5 songs in these lists already have unique artists and unique genres, so no 
 4. **Diversity cannot fix a sparse catalog.** For Deep Intense Rock, all top-5 songs already have unique artists and genres — there's no clustering to break. The fairness problem there is that only one rock song exists, not that the same artist repeats.
 
 ---
+## Challenge 4: Visual Summary Table
+
+### What was built
+
+Terminal output was redesigned using the `tabulate` library. Each recommendation block now has three parts:
+
+1. **Box header** — Unicode `╔═╗ / ╚═╝` border showing the profile name and scoring mode
+2. **Summary table** — five songs in a clean aligned grid (rank, title, artist, genre, mood, score)
+3. **Reasons block** — per-song bullet points indented below the table
+
+`tabulate` was added to `requirements.txt`.
+
+### Example output — Chill Lofi profile, all four scoring modes
+
+```text
+╔══════════════════════════════════════════════════════════════╗
+║  Chill Lofi  [balanced]                                      ║
+╚══════════════════════════════════════════════════════════════╝
+
+    Title               Artist          Genre    Mood      Score
+--  ------------------  --------------  -------  --------  -------
+#1  Midnight Coding     LoRoom          lofi     chill     0.98
+#2  Library Rain        Paper Lanterns  lofi     chill     0.97
+#3  Focus Flow          LoRoom          lofi     focused   0.92
+#4  Spacewalk Thoughts  Orbit Bloom     ambient  chill     0.83
+#5  Candlelight Folk    Wren & Hollow   folk     peaceful  0.75
+
+  Why each song was picked:
+  #1 Midnight Coding
+      • energy closely matches (diff=0.02)
+      • tempo closely matches (diff=0.00)
+      • valence closely matches (diff=0.04)
+      • acousticness closely matches (diff=0.04)
+      • popularity closely matches (diff=0.05)
+      • liveness closely matches (diff=0.02)
+      • instrumentalness closely matches (diff=0.05)
+      • loudness closely matches (diff=0.04)
+      • mood is an exact match (chill)
+      • genre matches (lofi)
+      • decade matches (2020s)
+  #2 Library Rain
+      • energy closely matches (diff=0.05)
+      • tempo closely matches (diff=0.07)
+      • valence closely matches (diff=0.00)
+      • popularity closely matches (diff=0.02)
+      • liveness closely matches (diff=0.01)
+      • instrumentalness closely matches (diff=0.02)
+      • loudness closely matches (diff=0.02)
+      • mood is an exact match (chill)
+      • genre matches (lofi)
+      • decade matches (2020s)
+  #3 Focus Flow
+      • energy closely matches (diff=0.00)
+      • tempo closely matches (diff=0.02)
+      • valence closely matches (diff=0.01)
+      • acousticness closely matches (diff=0.03)
+      • popularity closely matches (diff=0.02)
+      • liveness closely matches (diff=0.00)
+      • instrumentalness closely matches (diff=0.00)
+      • loudness closely matches (diff=0.05)
+      • mood is a partial match (focused ~ chill, sim=0.5)
+      • genre matches (lofi)
+      • decade matches (2020s)
+  #4 Spacewalk Thoughts
+      • valence closely matches (diff=0.05)
+      • liveness closely matches (diff=0.04)
+      • mood is an exact match (chill)
+      • genre does not match (ambient vs lofi)
+      • decade matches (2020s)
+  #5 Candlelight Folk
+      • tempo closely matches (diff=0.05)
+      • liveness is far off (diff=0.45)
+      • mood is a partial match (peaceful ~ chill, sim=0.6)
+      • genre does not match (folk vs lofi)
+      • decade matches (2020s)
+
+╔══════════════════════════════════════════════════════════════╗
+║  Chill Lofi  [genre_first]                                   ║
+╚══════════════════════════════════════════════════════════════╝
+
+    Title               Artist          Genre    Mood      Score
+--  ------------------  --------------  -------  --------  -------
+#1  Midnight Coding     LoRoom          lofi     chill     0.99
+#2  Library Rain        Paper Lanterns  lofi     chill     0.98
+#3  Focus Flow          LoRoom          lofi     focused   0.92
+#4  Spacewalk Thoughts  Orbit Bloom     ambient  chill     0.65
+#5  Candlelight Folk    Wren & Hollow   folk     peaceful  0.58
+
+╔══════════════════════════════════════════════════════════════╗
+║  Chill Lofi  [mood_first]                                    ║
+╚══════════════════════════════════════════════════════════════╝
+
+    Title               Artist          Genre    Mood      Score
+--  ------------------  --------------  -------  --------  -------
+#1  Midnight Coding     LoRoom          lofi     chill     0.97
+#2  Library Rain        Paper Lanterns  lofi     chill     0.96
+#3  Spacewalk Thoughts  Orbit Bloom     ambient  chill     0.88
+#4  Focus Flow          LoRoom          lofi     focused   0.87
+#5  Coffee Shop Stories Slow Stereo     jazz     relaxed   0.78
+
+╔══════════════════════════════════════════════════════════════╗
+║  Chill Lofi  [energy_focused]                                ║
+╚══════════════════════════════════════════════════════════════╝
+
+    Title               Artist          Genre    Mood      Score
+--  ------------------  --------------  -------  --------  -------
+#1  Midnight Coding     LoRoom          lofi     chill     0.96
+#2  Library Rain        Paper Lanterns  lofi     chill     0.93
+#3  Focus Flow          LoRoom          lofi     focused   0.93
+#4  Coffee Shop Stories Slow Stereo     jazz     relaxed   0.90
+#5  Candlelight Folk    Wren & Hollow   folk     peaceful  0.88
+```
+
+### What improved
+
+Before this change, each song took 8–12 lines of terminal output. The summary table collapses all five songs into 7 lines, making it easy to scan and compare results across modes at a glance. The reasons block is still present for deeper inspection but no longer dominates the screen. Long strings (title, artist, genre, mood) are truncated to fixed widths so columns stay aligned regardless of song name length.
+
+---
