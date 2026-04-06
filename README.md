@@ -191,6 +191,398 @@ python -m src.main
 
 ---
 
+### Stress Test with Diverse Profiles
+
+Running all 8 user profiles (3 normal + 5 adversarial) against the 20-song catalog:
+
+```text
+Loaded 20 songs from the dataset.
+
+==================================================
+  Top Recommendations — Chill Lofi
+==================================================
+
+#1  Midnight Coding  —  LoRoom
+     Score : 0.98  |  Genre: lofi  |  Mood: chill
+     Why   :
+       • energy closely matches (diff=0.02)
+       • tempo closely matches (diff=0.00)
+       • valence closely matches (diff=0.04)
+       • acousticness closely matches (diff=0.04)
+       • mood is an exact match (chill)
+       • genre matches (lofi)
+
+#2  Library Rain  —  Paper Lanterns
+     Score : 0.96  |  Genre: lofi  |  Mood: chill
+     Why   :
+       • energy closely matches (diff=0.05)
+       • tempo closely matches (diff=0.07)
+       • valence closely matches (diff=0.00)
+       • mood is an exact match (chill)
+       • genre matches (lofi)
+
+#3  Focus Flow  —  LoRoom
+     Score : 0.89  |  Genre: lofi  |  Mood: focused
+     Why   :
+       • energy closely matches (diff=0.00)
+       • tempo closely matches (diff=0.02)
+       • valence closely matches (diff=0.01)
+       • acousticness closely matches (diff=0.03)
+       • mood is a partial match (focused ~ chill, sim=0.5)
+       • genre matches (lofi)
+
+#4  Spacewalk Thoughts  —  Orbit Bloom
+     Score : 0.81  |  Genre: ambient  |  Mood: chill
+     Why   :
+       • valence closely matches (diff=0.05)
+       • mood is an exact match (chill)
+       • genre does not match (ambient vs lofi)
+
+#5  Coffee Shop Stories  —  Slow Stereo
+     Score : 0.78  |  Genre: jazz  |  Mood: relaxed
+     Why   :
+       • energy closely matches (diff=0.03)
+       • mood is a partial match (relaxed ~ chill, sim=0.7)
+       • genre does not match (jazz vs lofi)
+
+==================================================
+
+==================================================
+  Top Recommendations — High-Energy Pop
+==================================================
+
+#1  Sunrise City  —  Neon Echo
+     Score : 0.98  |  Genre: pop  |  Mood: happy
+     Why   :
+       • energy closely matches (diff=0.03)
+       • tempo closely matches (diff=0.00)
+       • valence closely matches (diff=0.04)
+       • acousticness closely matches (diff=0.03)
+       • mood is an exact match (happy)
+       • genre matches (pop)
+
+#2  Rooftop Lights  —  Indigo Parade
+     Score : 0.83  |  Genre: indie pop  |  Mood: happy
+     Why   :
+       • energy closely matches (diff=0.09)
+       • tempo closely matches (diff=0.07)
+       • valence closely matches (diff=0.07)
+       • mood is an exact match (happy)
+       • genre does not match (indie pop vs pop)
+
+#3  Neon Rave  —  Pulse Grid
+     Score : 0.76  |  Genre: edm  |  Mood: euphoric
+     Why   :
+       • energy closely matches (diff=0.10)
+       • valence closely matches (diff=0.00)
+       • mood is a partial match (euphoric ~ happy, sim=0.7)
+       • genre does not match (edm vs pop)
+
+#4  Gym Hero  —  Max Pulse
+     Score : 0.72  |  Genre: pop  |  Mood: intense
+     Why   :
+       • energy closely matches (diff=0.08)
+       • acousticness closely matches (diff=0.10)
+       • mood does not match (intense vs happy)
+       • genre matches (pop)
+
+#5  Fuego Lento  —  Casa Ritmo
+     Score : 0.62  |  Genre: latin  |  Mood: dreamy
+     Why   :
+       • tempo closely matches (diff=0.06)
+       • valence closely matches (diff=0.09)
+       • mood does not match (dreamy vs happy)
+       • genre does not match (latin vs pop)
+
+==================================================
+
+==================================================
+  Top Recommendations — Deep Intense Rock
+==================================================
+
+#1  Storm Runner  —  Voltline
+     Score : 0.99  |  Genre: rock  |  Mood: intense
+     Why   :
+       • energy closely matches (diff=0.01)
+       • tempo closely matches (diff=0.00)
+       • valence closely matches (diff=0.08)
+       • acousticness closely matches (diff=0.00)
+       • mood is an exact match (intense)
+       • genre matches (rock)
+
+#2  Gym Hero  —  Max Pulse
+     Score : 0.79  |  Genre: pop  |  Mood: intense
+     Why   :
+       • energy closely matches (diff=0.01)
+       • acousticness closely matches (diff=0.05)
+       • mood is an exact match (intense)
+       • genre does not match (pop vs rock)
+
+#3  Iron Curtain  —  Rustvolt
+     Score : 0.76  |  Genre: metal  |  Mood: aggressive
+     Why   :
+       • energy closely matches (diff=0.05)
+       • acousticness closely matches (diff=0.06)
+       • mood is a partial match (aggressive ~ intense, sim=0.7)
+       • genre does not match (metal vs rock)
+
+#4  Neon Rave  —  Pulse Grid
+     Score : 0.59  |  Genre: edm  |  Mood: euphoric
+     Why   :
+       • energy closely matches (diff=0.03)
+       • valence is far off (diff=0.48)
+       • acousticness closely matches (diff=0.07)
+       • mood does not match (euphoric vs intense)
+       • genre does not match (edm vs rock)
+
+#5  Night Drive Loop  —  Neon Echo
+     Score : 0.54  |  Genre: synthwave  |  Mood: moody
+     Why   :
+       • tempo is far off (diff=0.46)
+       • valence closely matches (diff=0.09)
+       • mood does not match (moody vs intense)
+       • genre does not match (synthwave vs rock)
+
+==================================================
+
+==================================================
+  Top Recommendations — Conflicting Energy + Mood
+==================================================
+
+#1  Storm Runner  —  Voltline
+     Score : 0.74  |  Genre: rock  |  Mood: intense
+     Why   :
+       • energy closely matches (diff=0.01)
+       • tempo closely matches (diff=0.10)
+       • acousticness closely matches (diff=0.00)
+       • mood does not match (intense vs chill)
+       • genre matches (rock)
+
+#2  Iron Curtain  —  Rustvolt
+     Score : 0.62  |  Genre: metal  |  Mood: aggressive
+     Why   :
+       • energy closely matches (diff=0.07)
+       • valence closely matches (diff=0.02)
+       • acousticness closely matches (diff=0.06)
+       • mood does not match (aggressive vs chill)
+       • genre does not match (metal vs rock)
+
+#3  Night Drive Loop  —  Neon Echo
+     Score : 0.60  |  Genre: synthwave  |  Mood: moody
+     Why   :
+       • mood is a partial match (moody ~ chill, sim=0.3)
+       • genre does not match (synthwave vs rock)
+
+#4  Gym Hero  —  Max Pulse
+     Score : 0.58  |  Genre: pop  |  Mood: intense
+     Why   :
+       • energy closely matches (diff=0.03)
+       • valence is far off (diff=0.57)
+       • acousticness closely matches (diff=0.05)
+       • mood does not match (intense vs chill)
+       • genre does not match (pop vs rock)
+
+#5  Neon Rave  —  Pulse Grid
+     Score : 0.57  |  Genre: edm  |  Mood: euphoric
+     Why   :
+       • energy closely matches (diff=0.05)
+       • tempo closely matches (diff=0.03)
+       • valence is far off (diff=0.68)
+       • acousticness closely matches (diff=0.07)
+       • mood does not match (euphoric vs chill)
+       • genre does not match (edm vs rock)
+
+==================================================
+
+==================================================
+  Top Recommendations — All Midpoint
+==================================================
+
+#1  Sunrise City  —  Neon Echo
+     Score : 0.81  |  Genre: pop  |  Mood: happy
+     Why   :
+       • mood is an exact match (happy)
+       • genre matches (pop)
+
+#2  Rooftop Lights  —  Indigo Parade
+     Score : 0.73  |  Genre: indie pop  |  Mood: happy
+     Why   :
+       • mood is an exact match (happy)
+       • genre does not match (indie pop vs pop)
+
+#3  Midnight Coding  —  LoRoom
+     Score : 0.63  |  Genre: lofi  |  Mood: chill
+     Why   :
+       • energy closely matches (diff=0.08)
+       • valence closely matches (diff=0.06)
+       • mood is a partial match (chill ~ happy, sim=0.2)
+       • genre does not match (lofi vs pop)
+
+#4  Coffee Shop Stories  —  Slow Stereo
+     Score : 0.62  |  Genre: jazz  |  Mood: relaxed
+     Why   :
+       • mood is a partial match (relaxed ~ happy, sim=0.3)
+       • genre does not match (jazz vs pop)
+
+#5  Dusty Road Home  —  The Pines
+     Score : 0.62  |  Genre: country  |  Mood: nostalgic
+     Why   :
+       • energy closely matches (diff=0.06)
+       • tempo closely matches (diff=0.02)
+       • mood does not match (nostalgic vs happy)
+       • genre does not match (country vs pop)
+
+==================================================
+
+==================================================
+  Top Recommendations — Unknown Genre and Mood
+==================================================
+
+#1  Candlelight Folk  —  Wren & Hollow
+     Score : 0.88  |  Genre: folk  |  Mood: peaceful
+     Why   :
+       • energy closely matches (diff=0.00)
+       • tempo closely matches (diff=0.00)
+       • valence closely matches (diff=0.03)
+       • mood is an exact match (peaceful)
+       • genre does not match (folk vs classical)
+
+#2  Coffee Shop Stories  —  Slow Stereo
+     Score : 0.80  |  Genre: jazz  |  Mood: relaxed
+     Why   :
+       • energy closely matches (diff=0.07)
+       • valence closely matches (diff=0.01)
+       • acousticness closely matches (diff=0.09)
+       • mood is a partial match (relaxed ~ peaceful, sim=0.8)
+       • genre does not match (jazz vs classical)
+
+#3  Library Rain  —  Paper Lanterns
+     Score : 0.78  |  Genre: lofi  |  Mood: chill
+     Why   :
+       • energy closely matches (diff=0.05)
+       • tempo closely matches (diff=0.02)
+       • valence closely matches (diff=0.10)
+       • acousticness closely matches (diff=0.06)
+       • mood is a partial match (chill ~ peaceful, sim=0.6)
+       • genre does not match (lofi vs classical)
+
+#4  Spacewalk Thoughts  —  Orbit Bloom
+     Score : 0.77  |  Genre: ambient  |  Mood: chill
+     Why   :
+       • energy closely matches (diff=0.02)
+       • valence closely matches (diff=0.05)
+       • mood is a partial match (chill ~ peaceful, sim=0.6)
+       • genre does not match (ambient vs classical)
+
+#5  Midnight Coding  —  LoRoom
+     Score : 0.75  |  Genre: lofi  |  Mood: chill
+     Why   :
+       • tempo closely matches (diff=0.05)
+       • acousticness closely matches (diff=0.09)
+       • mood is a partial match (chill ~ peaceful, sim=0.6)
+       • genre does not match (lofi vs classical)
+
+==================================================
+
+==================================================
+  Top Recommendations — All Zeros
+==================================================
+
+#1  Spacewalk Thoughts  —  Orbit Bloom
+     Score : 0.74  |  Genre: ambient  |  Mood: chill
+     Why   :
+       • tempo closely matches (diff=0.00)
+       • valence is far off (diff=0.65)
+       • acousticness is far off (diff=0.92)
+       • mood is an exact match (chill)
+       • genre matches (ambient)
+
+#2  Library Rain  —  Paper Lanterns
+     Score : 0.61  |  Genre: lofi  |  Mood: chill
+     Why   :
+       • valence is far off (diff=0.60)
+       • acousticness is far off (diff=0.86)
+       • mood is an exact match (chill)
+       • genre does not match (lofi vs ambient)
+
+#3  Midnight Coding  —  LoRoom
+     Score : 0.60  |  Genre: lofi  |  Mood: chill
+     Why   :
+       • energy is far off (diff=0.42)
+       • valence is far off (diff=0.56)
+       • acousticness is far off (diff=0.71)
+       • mood is an exact match (chill)
+       • genre does not match (lofi vs ambient)
+
+#4  Candlelight Folk  —  Wren & Hollow
+     Score : 0.51  |  Genre: folk  |  Mood: peaceful
+     Why   :
+       • valence is far off (diff=0.73)
+       • acousticness is far off (diff=0.94)
+       • mood is a partial match (peaceful ~ chill, sim=0.6)
+       • genre does not match (folk vs ambient)
+
+#5  Moonlight Sonata Reimagined  —  Clara Voss
+     Score : 0.50  |  Genre: classical  |  Mood: melancholic
+     Why   :
+       • tempo closely matches (diff=0.02)
+       • acousticness is far off (diff=0.97)
+       • mood does not match (melancholic vs chill)
+       • genre does not match (classical vs ambient)
+
+==================================================
+
+==================================================
+  Top Recommendations — All Ones
+==================================================
+
+#1  Storm Runner  —  Voltline
+     Score : 0.81  |  Genre: rock  |  Mood: intense
+     Why   :
+       • energy closely matches (diff=0.09)
+       • tempo closely matches (diff=0.00)
+       • valence is far off (diff=0.52)
+       • acousticness is far off (diff=0.90)
+       • mood is an exact match (intense)
+       • genre matches (rock)
+
+#2  Gym Hero  —  Max Pulse
+     Score : 0.71  |  Genre: pop  |  Mood: intense
+     Why   :
+       • energy closely matches (diff=0.07)
+       • acousticness is far off (diff=0.95)
+       • mood is an exact match (intense)
+       • genre does not match (pop vs rock)
+
+#3  Iron Curtain  —  Rustvolt
+     Score : 0.58  |  Genre: metal  |  Mood: aggressive
+     Why   :
+       • energy closely matches (diff=0.03)
+       • valence is far off (diff=0.78)
+       • acousticness is far off (diff=0.96)
+       • mood is a partial match (aggressive ~ intense, sim=0.7)
+       • genre does not match (metal vs rock)
+
+#4  Neon Rave  —  Pulse Grid
+     Score : 0.55  |  Genre: edm  |  Mood: euphoric
+     Why   :
+       • energy closely matches (diff=0.05)
+       • acousticness is far off (diff=0.97)
+       • mood does not match (euphoric vs intense)
+       • genre does not match (edm vs rock)
+
+#5  Rooftop Lights  —  Indigo Parade
+     Score : 0.49  |  Genre: indie pop  |  Mood: happy
+     Why   :
+       • acousticness is far off (diff=0.65)
+       • mood does not match (happy vs intense)
+       • genre does not match (indie pop vs rock)
+
+==================================================
+```
+
+---
+
 ### Running Tests
 
 Run the starter tests with:
@@ -203,145 +595,18 @@ You can add more tests in `tests/test_recommender.py`.
 
 ---
 
-## Experiments You Tried
+### Do the recommendations "feel" right? A musical intuition check
 
-Use this section to document the experiments you ran. For example:
+#### Chill Lofi — feels right
 
-- What happened when you changed the weight on genre from 2.0 to 0.5
-- What happened when you added tempo or valence to the score
-- How did your system behave for different types of users
+The top 3 are all lofi tracks with chill or adjacent moods: *Midnight Coding*, *Library Rain*, and *Focus Flow*. Musically this is exactly what you'd expect — slow BPM, high acousticness, mellow energy. #4 (*Spacewalk Thoughts*, ambient/chill) is a reasonable stretch: ambient and lofi share the same listener headspace even if they're different genres. #5 (*Coffee Shop Stories*, jazz/relaxed) also makes intuitive sense — jazz cafè music sits right next to lofi study playlists on real platforms. **This profile produces the most trustworthy results.**
 
----
+#### High-Energy Pop — mostly right, one odd result
 
-## Limitations and Risks
+\#1–3 feel natural: *Sunrise City* (pop/happy) is a near-perfect hit, *Rooftop Lights* (indie pop/happy) is a reasonable adjacent pick, and *Neon Rave* (edm/euphoric) is a credible energy match even without a genre hit. The partial mood match `euphoric ~ happy (0.7)` is doing real work here. \#4 (*Gym Hero*, pop/intense) is genre-correct but mood-wrong — a real listener asking for happy pop probably doesn't want an intense workout track. \#5 (*Fuego Lento*, latin/dreamy) feels out of place: tempo matches but dreamy latin doesn't belong in a high-energy pop session. **The system gets the top 3 right but the bottom 2 reveal that tempo proximity can pull in off-vibe songs when mood and genre both miss.**
 
-Summarize some limitations of your recommender.
+#### Conflicting Energy + Mood — exposes the biggest flaw
 
-Examples:
-
-- It only works on a tiny catalog
-- It does not understand lyrics or language
-- It might over favor one genre or mood
-
-You will go deeper on this in your model card.
+This is where musical intuition and the scorer diverge most clearly. The user wants **high energy (0.9) but chill mood** — think chillstep, lo-fi drum and bass, or atmospheric electronic. The system returns *Storm Runner* (hard rock/intense) at #1 because energy+tempo (45% combined weight) dominate the chill mood penalty (20% weight). A real listener would find this jarring. The scoring formula has no concept of "genre adjacency to the requested vibe" — it sees matching numbers, not matching feel. **This confirms that numeric proximity alone cannot capture listener intent when features conflict, and that mood weight at 0.20 is too weak to veto a strong numeric match.**
 
 ---
-
-## Reflection
-
-Read and complete `model_card.md`:
-
-[**Model Card**](model_card.md)
-
-Write 1 to 2 paragraphs here about what you learned:
-
-- about how recommenders turn data into predictions
-- about where bias or unfairness could show up in systems like this
-
----
-
-## 7. `model_card_template.md`
-
-Combines reflection and model card framing from the Module 3 guidance. :contentReference[oaicite:2]{index=2}  
-
-```markdown
-# 🎧 Model Card - Music Recommender Simulation
-
-## 1. Model Name
-
-Give your recommender a name, for example:
-
-> VibeFinder 1.0
-
----
-
-## 2. Intended Use
-
-- What is this system trying to do
-- Who is it for
-
-Example:
-
-> This model suggests 3 to 5 songs from a small catalog based on a user's preferred genre, mood, and energy level. It is for classroom exploration only, not for real users.
-
----
-
-## 3. How It Works (Short Explanation)
-
-Describe your scoring logic in plain language.
-
-- What features of each song does it consider
-- What information about the user does it use
-- How does it turn those into a number
-
-Try to avoid code in this section, treat it like an explanation to a non programmer.
-
----
-
-## 4. Data
-
-Describe your dataset.
-
-- How many songs are in `data/songs.csv`
-- Did you add or remove any songs
-- What kinds of genres or moods are represented
-- Whose taste does this data mostly reflect
-
----
-
-## 5. Strengths
-
-Where does your recommender work well
-
-You can think about:
-- Situations where the top results "felt right"
-- Particular user profiles it served well
-- Simplicity or transparency benefits
-
----
-
-## 6. Limitations and Bias
-
-Where does your recommender struggle
-
-Some prompts:
-- Does it ignore some genres or moods
-- Does it treat all users as if they have the same taste shape
-- Is it biased toward high energy or one genre by default
-- How could this be unfair if used in a real product
-
----
-
-## 7. Evaluation
-
-How did you check your system
-
-Examples:
-- You tried multiple user profiles and wrote down whether the results matched your expectations
-- You compared your simulation to what a real app like Spotify or YouTube tends to recommend
-- You wrote tests for your scoring logic
-
-You do not need a numeric metric, but if you used one, explain what it measures.
-
----
-
-## 8. Future Work
-
-If you had more time, how would you improve this recommender
-
-Examples:
-
-- Add support for multiple users and "group vibe" recommendations
-- Balance diversity of songs instead of always picking the closest match
-- Use more features, like tempo ranges or lyric themes
-
----
-
-## 9. Personal Reflection
-
-A few sentences about what you learned:
-
-- What surprised you about how your system behaved
-- How did building this change how you think about real music recommenders
-- Where do you think human judgment still matters, even if the model seems "smart"
-

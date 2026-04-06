@@ -72,14 +72,16 @@ def load_songs(csv_path: str) -> List[Dict]:
             })
     return songs
 
-# Weights from the Algorithm Recipe (sum = 1.0; danceability folded into energy)
+# Weight shift experiment: energy doubled (0.25→0.50), genre halved (0.10→0.05).
+# Remaining four weights scaled proportionally so sum stays 1.0.
+# Original → New: mood 0.20→0.14, tempo 0.20→0.14, valence 0.15→0.10, acousticness 0.10→0.07
 _WEIGHTS = {
-    "target_energy":       0.25,
-    "favorite_mood":       0.20,
-    "target_tempo":        0.20,
-    "target_valence":      0.15,
-    "target_acousticness": 0.10,
-    "favorite_genre":      0.10,
+    "target_energy":       0.50,   # was 0.25
+    "favorite_mood":       0.14,   # was 0.20
+    "target_tempo":        0.14,   # was 0.20
+    "target_valence":      0.10,   # was 0.15
+    "target_acousticness": 0.07,   # was 0.10
+    "favorite_genre":      0.05,   # was 0.10
 }
 
 # Partial mood-similarity table (symmetric).  Missing pairs default to 0.0
